@@ -19,17 +19,26 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
   const [feedbackChips, setFeedbackChips] = useState([]); // chips to display
   const scrollRef = useRef(null);
 
-  // Add a chip when lastLogged changes
+  // Add a chip when lastLogged changes with animation
   useEffect(() => {
     if (lastLogged) {
       const chip = {
         id: Date.now(), // simple unique id
         type: lastLogged.type,
         text: lastLogged.text,
+        animated: true // for animation
       };
       setFeedbackChips(prev => [chip, ...prev.slice(0, 4)]); // keep max 5 chips
     }
   }, [lastLogged]);
+
+  // Remove animation class after animation ends
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFeedbackChips(prev => prev.map(chip => ({ ...chip, animated: false })));
+    }, 500); // match CSS animation duration
+    return () => clearTimeout(timer);
+  }, [feedbackChips]);
 
   const handleStartListening = () => {
     startListening();
@@ -74,8 +83,12 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
           ))}
         </div>
         <div className="feedback-chip-tray">
-          {feedbackChips.map((chip) => (
-            <span key={chip.id} className={`chip chip-${chip.type}`}>
+          {feedbackChips.map((chip, index) => (
+            <span
+              key={chip.id}
+              className={`chip chip-${chip.type} ${chip.animated ? 'animate-in' : ''}`}
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
               {chip.type === 'claim' && !chip.text.toLowerCase().includes('evidence') && '(no evidence)'}
               {chip.text}
             </span>
@@ -90,7 +103,11 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
         )}
         {isListening && (
           <div className="listening-indicator">
-            <div className="pulse"></div>
+            <div className="waveform">
+              <div className="wave"></div>
+              <div className="wave"></div>
+              <div className="wave"></div>
+            </div>
             <p>Listening...</p>
           </div>
         )}
