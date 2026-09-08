@@ -1,14 +1,60 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.css';
+import { useSession } from './SessionContext';
+import Landing from './components/Landing';
+import Framing from './components/Framing';
+import ActiveSession from './components/ActiveSession';
+import Processing from './components/Processing';
+import Artifact from './components/Artifact';
 
 function App() {
+  const [screen, setScreen] = useState('landing');
+  const [decisionTitle, setDecisionTitle] = useState('');
+  const { resetSession } = useSession();
+
+  const handleStart = () => {
+    setScreen('framing');
+  };
+
+  const handleSkipFraming = () => {
+    setScreen('active');
+  };
+
+  const handleFramingComplete = (title) => {
+    setDecisionTitle(title);
+    setScreen('active');
+  };
+
+  const handleEndSession = () => {
+    setScreen('processing');
+    // Simulate processing delay
+    setTimeout(() => {
+      setScreen('artifact');
+    }, 1500);
+  };
+
+  const handleRestart = () => {
+    resetSession();
+    setDecisionTitle('');
+    setScreen('landing');
+  };
+
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Voice Thinking Partner</h1>
-        <p>A mobile-first voice web app that helps users think through decisions</p>
-        <button>Start thinking</button>
-      </header>
+      {screen === 'landing' && <Landing onStart={handleStart} />}
+      {screen === 'framing' && <Framing
+        onSkip={handleSkipFraming}
+        onComplete={handleFramingComplete}
+      />}
+      {screen === 'active' && <ActiveSession
+        decisionTitle={decisionTitle}
+        onEnd={handleEndSession}
+      />}
+      {screen === 'processing' && <Processing />}
+      {screen === 'artifact' && <Artifact
+        decisionTitle={decisionTitle}
+        onRestart={handleRestart}
+      />}
     </div>
   );
 }
