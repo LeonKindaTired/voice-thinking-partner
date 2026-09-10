@@ -1,0 +1,180 @@
+
+> voice-thinking-partner@0.1.0 dev
+> vite
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m2790[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3000[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m4:04:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m4:04:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m4:06:01 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.css[22m
+[2m4:08:20 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.css[22m
+[2m4:08:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:09:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.css[22m
+[2m4:09:45 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.css[22m
+[2m4:09:49 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:10:59 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:11:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:12:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:12:30 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:19:21 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m4:19:21 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "./ActiveSession.css" from "src/components/ActiveSession.jsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Hackathons/voice-thinking-partner/src/components/ActiveSession.jsx[39m:4:7
+[33m  19 |  import useVoiceSession from "../hooks/useVoiceSession";
+  20 |  import { useSession } from "../SessionContext";
+  21 |  import "./ActiveSession.css";
+     |          ^
+  22 |  const CHIP_LIFETIME_MS = 4e3;
+  23 |  const MAX_CHIPS = 5;[39m
+      at TransformPluginContext._formatError (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m4:19:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:19:42 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "./ActiveSession.css" from "src/components/ActiveSession.jsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Hackathons/voice-thinking-partner/src/components/ActiveSession.jsx[39m:4:7
+[33m  19 |  import useVoiceSession from "../hooks/useVoiceSession";
+  20 |  import { useSession } from "../SessionContext";
+  21 |  import "./ActiveSession.css";
+     |          ^
+  22 |  const CHIP_LIFETIME_MS = 4e3;
+  23 |  const MAX_CHIPS = 5;[39m
+      at TransformPluginContext._formatError (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m4:19:42 PM[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "./ActiveSession.css" from "src/components/ActiveSession.jsx". Does the file exist?
+[2m4:20:02 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:28:10 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Artifact.jsx[22m
+[2m4:28:10 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../styles/Artifact.css" from "src/components/Artifact.jsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Hackathons/voice-thinking-partner/src/components/Artifact.jsx[39m:3:7
+[33m  18 |  import React from "react";
+  19 |  import { useSession } from "../SessionContext";
+  20 |  import "../styles/Artifact.css";
+     |          ^
+  21 |  const Artifact = ({ decisionTitle, onRestart }) => {
+  22 |    _s();[39m
+      at TransformPluginContext._formatError (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m4:28:24 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:28:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/Artifact.css[22m
+[2m4:32:15 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Framing.jsx[22m
+[2m4:32:15 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../styles/Framing.css" from "src/components/Framing.jsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Hackathons/voice-thinking-partner/src/components/Framing.jsx[39m:2:7
+[33m  17 |  var _s = $RefreshSig$();
+  18 |  import React, { useState } from "react";
+  19 |  import "../styles/Framing.css";
+     |          ^
+  20 |  const Framing = ({ onSkip, onComplete }) => {
+  21 |    _s();[39m
+      at TransformPluginContext._formatError (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m4:32:32 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:32:36 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/Framing.css[22m
+[2m4:38:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/History.jsx[22m
+[2m4:38:40 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/History.css[22m
+[2m4:38:43 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/History.css[22m
+[2m4:38:43 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/History.css[22m
+[2m4:40:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Landing.jsx[22m
+[2m4:40:56 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../styles/Landing.css" from "src/components/Landing.jsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Hackathons/voice-thinking-partner/src/components/Landing.jsx[39m:2:7
+[33m  16 |  }
+  17 |  import React from "react";
+  18 |  import "../styles/Landing.css";
+     |          ^
+  19 |  const Landing = ({ onStart, onViewHistory }) => {
+  20 |    return /* @__PURE__ */ jsxDEV("div", { className: "landing-screen", children: /* @__PURE__ */ jsxDEV("main", { className: "landing-content", children: [[39m
+      at TransformPluginContext._formatError (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m4:41:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:41:09 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/Landing.css[22m
+[2m4:41:46 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Processing.jsx[22m
+[2m4:41:46 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../styles/Processing.css" from "src/components/Processing.jsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Hackathons/voice-thinking-partner/src/components/Processing.jsx[39m:2:7
+[33m  16 |  }
+  17 |  import React from "react";
+  18 |  import "../styles/Processing.css";
+     |          ^
+  19 |  const Processing = () => {
+  20 |    return /* @__PURE__ */ jsxDEV("div", { className: "processing-screen", children: /* @__PURE__ */ jsxDEV("main", { className: "processing-content", children: [[39m
+      at TransformPluginContext._formatError (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m4:42:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:42:50 PM[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../styles/Processing.css" from "src/components/Processing.jsx". Does the file exist?
+[2m4:42:50 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../styles/Processing.css" from "src/components/Processing.jsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Hackathons/voice-thinking-partner/src/components/Processing.jsx[39m:2:7
+[33m  16 |  }
+  17 |  import React from "react";
+  18 |  import "../styles/Processing.css";
+     |          ^
+  19 |  const Processing = () => {
+  20 |    return /* @__PURE__ */ jsxDEV("div", { className: "processing-screen", children: /* @__PURE__ */ jsxDEV("main", { className: "processing-content", children: [[39m
+      at TransformPluginContext._formatError (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///D:/Hackathons/voice-thinking-partner/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m4:42:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:43:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/Processing.css[22m
+[2m4:51:11 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.css[22m
+[2m4:51:16 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.css[22m
+[2m4:51:22 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m4:51:27 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.jsx[22m

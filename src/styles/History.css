@@ -1,0 +1,232 @@
+.history-screen {
+  min-height: 100vh;
+  padding: var(--space-4) var(--space-3);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Inter", "Nunito Sans", system-ui, sans-serif;
+}
+
+.history-content {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* Header */
+
+.history-header {
+  margin-bottom: var(--space-4);
+}
+
+.history-eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.history-subtitle {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+/* List */
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.history-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.history-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-border);
+  box-shadow: 0 4px 16px rgba(43, 42, 46, 0.06);
+}
+
+.history-item:active {
+  transform: translateY(0);
+}
+
+.history-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.history-item__main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.history-item-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.history-item-date {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* Stats */
+
+.history-item-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.history-stat {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  background: var(--color-tone-sand);
+  color: var(--color-text);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.history-stat--plum {
+  background: var(--color-tone-plum);
+}
+
+.history-stat--accent {
+  background: var(--color-accent-soft);
+}
+
+/* Empty state */
+
+.history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.history-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-tone-sand);
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+}
+
+.history-empty h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.history-empty p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Footer */
+
+.history-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-4);
+}
+
+.history-back {
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.history-back:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.history-back:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* Mobile */
+
+@media (max-width: 600px) {
+  .history-screen {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .history-title {
+    font-size: 1.65rem;
+  }
+
+  .history-item {
+    padding: var(--space-2);
+  }
+
+  .history-item__main {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .history-item-date {
+    font-size: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history-item,
+  .history-back {
+    transition: none;
+  }
+}

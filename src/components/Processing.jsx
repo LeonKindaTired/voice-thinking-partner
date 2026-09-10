@@ -1,13 +1,22 @@
-import React from 'react';
+import React from "react";
+import "../styles/Processing.css";
 
 const Processing = () => {
   return (
     <div className="processing-screen">
-      <div className="processing-content">
-        <h2>Putting your thoughts together...</h2>
-        <div className="spinner"></div>
-        <p>This should take just a moment.</p>
-      </div>
+      <main className="processing-content">
+        <div className="processing-indicator" aria-hidden="true">
+          <span className="processing-indicator__pulse" />
+        </div>
+
+        <p className="processing-eyebrow">Decision map</p>
+
+        <h1 className="processing-title">Putting your thoughts together...</h1>
+
+        <p className="processing-description">
+          This should take just a moment.
+        </p>
+      </main>
     </div>
   );
 };

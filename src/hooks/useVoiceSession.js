@@ -252,7 +252,7 @@ const useVoiceSession = () => {
             switch (toolName) {
               case 'log_claim':
                 logClaim(toolUse.text, toolUse.has_evidence);
-                setLastLogged({ type: 'claim', text: toolUse.text });
+                setLastLogged({ type: 'claim', text: toolUse.text, hasEvidence: toolUse.has_evidence });
                 break;
               case 'log_assumption':
                 logAssumption(toolUse.text);

@@ -1,6 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
-import useVoiceSession from '../hooks/useVoiceSession';
-import { useSession } from '../SessionContext';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import useVoiceSession from "../hooks/useVoiceSession";
+import { useSession } from "../SessionContext";
+import "../styles/ActiveSession.css";
+
+const CHIP_LIFETIME_MS = 4000; // how long a chip stays before fading out
+const MAX_CHIPS = 5;
+
+const chipLabel = (entry) => {
+  switch (entry.type) {
+    case "claim":
+      return entry.hasEvidence
+        ? "Claim noted"
+        : "Claim noted — no evidence given";
+    case "assumption":
+      return "Assumption noted";
+    case "option":
+      return "Option noted";
+    case "criterion":
+      return "Criterion noted";
+    default:
+      return `${entry.type} noted`;
+  }
+};
 
 const ActiveSession = ({ decisionTitle, onEnd }) => {
   const {
@@ -10,130 +31,163 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
     startListening,
     stopListening,
     processUserUtterance,
-    reset,
-    addTranscriptLine,
     lastLogged,
   } = useVoiceSession();
   const { resetSession } = useSession();
-  const [userInput, setUserInput] = useState('');
-  const [feedbackChips, setFeedbackChips] = useState([]); // chips to display
-  const scrollRef = useRef(null);
 
-  // Add a chip when lastLogged changes with animation
+  const [feedbackChips, setFeedbackChips] = useState([]);
+  const [devInput, setDevInput] = useState("");
+  const [showDevInput, setShowDevInput] = useState(false);
+
+  const scrollRef = useRef(null);
+  const chipTimers = useRef(new Map());
+
+  // Add a chip when a new item is logged; each chip owns its own expiry timer
+  // so chips fade independently instead of all resetting together.
   useEffect(() => {
-    if (lastLogged) {
-      const chip = {
-        id: Date.now(), // simple unique id
-        type: lastLogged.type,
-        text: lastLogged.text,
-        animated: true // for animation
-      };
-      setFeedbackChips(prev => [chip, ...prev.slice(0, 4)]); // keep max 5 chips
-    }
+    if (!lastLogged) return;
+
+    const id = `${lastLogged.type}-${Date.now()}`;
+    const chip = { id, type: lastLogged.type, text: chipLabel(lastLogged) };
+
+    setFeedbackChips((prev) => [chip, ...prev].slice(0, MAX_CHIPS));
+
+    const timer = setTimeout(() => {
+      setFeedbackChips((prev) => prev.filter((c) => c.id !== id));
+      chipTimers.current.delete(id);
+    }, CHIP_LIFETIME_MS);
+
+    chipTimers.current.set(id, timer);
   }, [lastLogged]);
 
-  // Remove animation class after animation ends
+  // Clean up any pending chip timers on unmount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setFeedbackChips(prev => prev.map(chip => ({ ...chip, animated: false })));
-    }, 500); // match CSS animation duration
-    return () => clearTimeout(timer);
-  }, [feedbackChips]);
+    const timers = chipTimers.current;
+    return () => timers.forEach((t) => clearTimeout(t));
+  }, []);
 
-  const handleStartListening = () => {
-    startListening();
-    // In a real implementation, we would start the microphone and AssemblyAI connection
-  };
-
-  const handleStopListening = () => {
-    stopListening();
-    onEnd(); // end the session when user stops listening
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (userInput.trim()) {
-      // Process the user input as if it was transcribed speech
-      processUserUtterance(userInput);
-      setUserInput('');
-    }
-  };
-
-  // Scroll to bottom of transcript when it changes
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [transcript]);
 
+  const handleStartListening = useCallback(() => {
+    startListening();
+  }, [startListening]);
+
+  const handleEndSession = useCallback(() => {
+    stopListening();
+    onEnd();
+  }, [stopListening, onEnd]);
+
+  const handleDevSubmit = (e) => {
+    e.preventDefault();
+    if (devInput.trim()) {
+      processUserUtterance(devInput.trim());
+      setDevInput("");
+    }
+  };
+
   return (
-    <div className="active-session-screen">
-      <div className="header">
-        <h2>{decisionTitle || 'What are you deciding?'}</h2>
-        <button className="end-button" onClick={handleStopListening}>
+    <div className="session-screen">
+      <header className="session-header">
+        <h1 className="session-title">
+          {decisionTitle || "What are you deciding?"}
+        </h1>
+        <button type="button" className="btn-end" onClick={handleEndSession}>
           End session
         </button>
-      </div>
-      <div className="content">
-        <div className="transcript-box" ref={scrollRef}>
-          {transcript.map((line, index) => (
-            <div key={index} className={`transcript-line ${line.speaker}`}>
-              <strong>{line.speaker === 'user' ? 'You' : 'Agent'}:</strong> {line.text}
-            </div>
-          ))}
-        </div>
-        <div className="feedback-chip-tray">
-          {feedbackChips.map((chip, index) => (
-            <span
-              key={chip.id}
-              className={`chip chip-${chip.type} ${chip.animated ? 'animate-in' : ''}`}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              {chip.type === 'claim' && !chip.text.toLowerCase().includes('evidence') && '(no evidence)'}
-              {chip.text}
+      </header>
+
+      <div
+        className="transcript"
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation transcript"
+      >
+        {transcript.length === 0 && (
+          <p className="transcript-empty">
+            Your conversation will appear here as you talk.
+          </p>
+        )}
+        {transcript.map((line, index) => (
+          <p
+            key={index}
+            className={`transcript-line transcript-line--${line.speaker}`}
+          >
+            <span className="transcript-speaker">
+              {line.speaker === "user" ? "You" : "Agent"}
             </span>
-          ))}
-        </div>
-        {!isListening && (
-          <div className="input-area">
-            <button onClick={handleStartListening} className="listen-button">
-              Start Listening
-            </button>
-          </div>
-        )}
-        {isListening && (
-          <div className="listening-indicator">
-            <div className="waveform">
-              <div className="wave"></div>
-              <div className="wave"></div>
-              <div className="wave"></div>
-            </div>
-            <p>Listening...</p>
-          </div>
-        )}
+            {line.text}
+          </p>
+        ))}
         {agentQuestion && (
-          <div className="agent-question">
-            <p>Agent: {agentQuestion}</p>
-          </div>
+          <p className="transcript-line transcript-line--agent transcript-line--active">
+            <span className="transcript-speaker">Agent</span>
+            {agentQuestion}
+          </p>
         )}
-        {!isListening && userInput && (
-          <div className="user-input-preview">
-            <p>You said: {userInput}</p>
-          </div>
-        )}
-        <form onSubmit={handleSubmit} className="user-input-form">
-          <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Type what you would say and press Enter"
-            disabled={!isListening}
-          />
-          <button type="submit" disabled={!isListening || !userInput.trim()}>
-            Send
-          </button>
-        </form>
       </div>
+
+      <div
+        className="chip-tray"
+        aria-live="polite"
+        aria-label="Things noticed during the conversation"
+      >
+        {feedbackChips.map((chip) => (
+          <span key={chip.id} className={`chip chip--${chip.type}`}>
+            {chip.text}
+          </span>
+        ))}
+      </div>
+
+      <div className="session-controls">
+        {!isListening ? (
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleStartListening}
+          >
+            Start talking
+          </button>
+        ) : (
+          <div className="listening-indicator" aria-live="polite">
+            <span className="listening-indicator__pulse" aria-hidden="true" />
+            <span className="listening-indicator__label">Listening</span>
+          </div>
+        )}
+      </div>
+
+      {/*
+        Dev-only: lets you simulate a spoken turn by typing, for testing the
+        session flow before the real AssemblyAI mic connection is wired in.
+        Gate this out of production builds — e.g. render only when
+        `import.meta.env.DEV` is true, or behind a feature flag.
+      */}
+      {import.meta.env.DEV && (
+        <details
+          className="dev-input"
+          open={showDevInput}
+          onToggle={(e) => setShowDevInput(e.target.open)}
+        >
+          <summary>Dev: simulate a spoken line</summary>
+          <form onSubmit={handleDevSubmit} className="dev-input__form">
+            <input
+              type="text"
+              value={devInput}
+              onChange={(e) => setDevInput(e.target.value)}
+              placeholder="Type what you'd say, then press Enter"
+              disabled={!isListening}
+              aria-label="Simulated spoken input"
+            />
+            <button type="submit" disabled={!isListening || !devInput.trim()}>
+              Send
+            </button>
+          </form>
+        </details>
+      )}
     </div>
   );
 };
