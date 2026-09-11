@@ -140,7 +140,34 @@
   color: var(--color-text);
   background: var(--color-tone-sand);
   opacity: 0;
-  animation: chip-fade-in 0.4s ease forwards;
+  transform: translateY(4px);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.chip--removing {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Fade-in animation for initial mount */
+.chip--enter {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+
+  .chip--removing {
+    opacity: 0;
+  }
+
+  .chip--enter {
+    opacity: 1;
+  }
 }
 
 .chip--assumption {
@@ -169,6 +196,91 @@
 }
 
 /* Session controls */
+
+.session-error {
+  background: var(--color-tone-plum);
+  color: var(--color-text);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.session-error button {
+  align-self: flex-start;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  background: var(--color-accent);
+  color: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.session-error button:hover {
+  background: var(--color-accent-soft);
+}
+
+.session-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.session-status-indicator {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-connecting {
+  background: var(--color-text-muted);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-connected {
+  background: var(--color-accent-soft);
+}
+
+.status-error {
+  background: var(--color-tone-plum);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-listening {
+  background: var(--color-accent-soft);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-connecting,
+  .status-listening {
+    animation: none;
+    opacity: 0.8;
+  }
+}
 
 .session-controls {
   display: flex;

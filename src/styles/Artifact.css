@@ -175,6 +175,55 @@
   outline-offset: 3px;
 }
 
+.artifact-share-button {
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 14px 32px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--color-border);
+  margin-left: var(--space-2);
+}
+
+.artifact-share-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.artifact-share-button.sharing {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
+.artifact-share-button.copied {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
+.artifact-share-button.error {
+  background: var(--color-tone-plum);
+  color: var(--color-surface);
+}
+
+.artifact-share-button:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(124, 143, 122, 0.25);
+  transform: translateY(-1px);
+}
+
+.artifact-share-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.artifact-share-button:focus-visible:not(:disabled) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
 /* Responsive */
 
 @media (max-width: 600px) {

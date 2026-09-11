@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from '../SessionContext';
-import { AssemblyAI } from 'assemblyai';
 
-// Enhanced voice session hook with AssemblyAI Voice Agent API integration
+// Voice session hook using AssemblyAI Voice Agent API via token endpoint
+// For production: set up a token service (see voice-agent-starter-js/deployment/browser/)
+// For development: falls back to mock implementation if no token service available
 const useVoiceSession = () => {
   const { logClaim, logAssumption, logOption, logCriterion, options } = useSession();
   const [transcript, setTranscript] = useState([]); // array of { speaker: 'user'|'agent', text }
@@ -12,8 +13,9 @@ const useVoiceSession = () => {
   const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'disconnected', 'connecting', 'connected', 'error'
   const [error, setError] = useState(null);
 
-  const assemblyAIRef = useRef(null);
-  const voiceAgentRef = useRef(null);
+  const wsRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const isUsingMockRef = useRef(false);
 
   // Add a line to the transcript
   const addTranscriptLine = useCallback((speaker, text) => {
@@ -99,218 +101,308 @@ const useVoiceSession = () => {
     }
   }, [logClaim, logAssumption, logOption, logCriterion, addTranscriptLine, setLastLogged, options]);
 
-  // Initialize AssemblyAI connection
+  // Initialize connection
   useEffect(() => {
-    // Get API key from environment variable or config
-    // In a real app, this would come from a secure config
+    // Get configuration from environment
     const apiKey = import.meta.env.VITE_ASSEMBLYAI_API_KEY || '';
+    const agentId = import.meta.env.VITE_ASSEMBLYAI_AGENT_ID || '';
+    const tokenEndpoint = import.meta.env.VITE_TOKEN_ENDPOINT || '/token';
+    const useMock = import.meta.env.VITE_USE_MOCK_VOICE === 'true';
 
-    if (!apiKey) {
-      console.warn('AssemblyAI API key not found. Using enhanced mock implementation.');
+    // If explicitly set to use mock, or missing required config, use mock implementation
+    if (useMock || !apiKey || !agentId) {
+      if (useMock) {
+        console.info('Using mock voice implementation (VITE_USE_MOCK_VOICE=true)');
+      } else if (!apiKey) {
+        console.warn('AssemblyAI API key not found. Using mock implementation.');
+      } else if (!agentId) {
+        console.warn('AssemblyAI Agent ID not found. Using mock implementation.');
+      }
+
+      setIsListening(true);
+      addTranscriptLine('agent', 'Go ahead, I\'m listening. (Mock mode - configure VITE_ASSEMBLYAI_API_KEY and VITE_ASSEMBLYAI_AGENT_ID for real voice)');
+      setConnectionStatus('connected');
+      isUsingMockRef.current = true;
       return;
     }
 
-    try {
-      // Initialize AssemblyAI client
-      assemblyAIRef.current = new AssemblyAI({ apiKey });
-    } catch (err) {
-      console.error('Failed to initialize AssemblyAI:', err);
-      setError('Failed to initialize AssemblyAI');
-      setConnectionStatus('error');
-    }
+    // Try to establish real connection
+    const initializeConnection = async () => {
+      try {
+        setConnectionStatus('connecting');
+        setError(null);
+        isUsingMockRef.current = false;
+
+        // Fetch token from endpoint
+        let token;
+        try {
+          const tokenResponse = await fetch(tokenEndpoint);
+          if (!tokenResponse.ok) {
+            throw new Error(`Failed to fetch token: ${tokenResponse.status}`);
+          }
+          const tokenData = await tokenResponse.json();
+          token = tokenData.token || tokenData.access_token;
+          if (!token) {
+            throw new Error('No token received from token endpoint');
+          }
+        } catch (tokenError) {
+          console.warn('Token fetch failed, falling back to mock:', tokenError.message);
+          throw tokenError; // Will be caught below to trigger fallback
+        }
+
+        // Create WebSocket connection to AssemblyAI
+        const ws = new WebSocket('wss://agents.assemblyai.com/v1/ws');
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          console.log('WebSocket connected to AssemblyAI');
+          // Send session.update to specify which agent to use
+          ws.send(JSON.stringify({
+            type: 'session.update',
+            session: { agent_id: agentId }
+          }));
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            handleAssemblyAIMessage(msg);
+          } catch (parseError) {
+            console.error('Failed to parse WebSocket message:', parseError);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setConnectionStatus('error');
+          setError(error.message || 'WebSocket connection error');
+          setIsListening(false);
+          // Fallback to mock on connection error
+          activateMockFallback('WebSocket connection error');
+        };
+
+        ws.onclose = () => {
+          console.log('WebSocket closed');
+          setConnectionStatus('disconnected');
+          setIsListening(false);
+          setAgentQuestion(null);
+          // Clean up media recorder if active
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop();
+          }
+          // Only fallback to mock if we weren't already using mock and weren't stopped intentionally
+          if (!isUsingMockRef.current && isListening) {
+            activateMockFallback('Connection closed unexpectedly');
+          }
+        };
+
+      } catch (err) {
+        console.warn('Failed to initialize voice session, falling back to mock:', err.message);
+        activateMockFallback('Initialization failed: ' + err.message);
+      }
+    };
+
+    // Activate mock fallback
+    const activateMockFallback = (reason) => {
+      console.info(`Activating mock fallback: ${reason}`);
+      setIsListening(true);
+      addTranscriptLine('agent', 'Go ahead, I\'m listening. (Fallback to mock mode - ' + reason + ')');
+      setConnectionStatus('connected');
+      isUsingMockRef.current = true;
+    };
+
+    initializeConnection();
+
+    // Cleanup function
+    return () => {
+      isUsingMockRef.current = false;
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current = null;
+      }
+    };
   }, []);
 
-  // Start listening with AssemblyAI Voice Agent API (or enhanced mock)
+  // Handle incoming messages from AssemblyAI
+  const handleAssemblyAIMessage = useCallback((msg) => {
+    switch (msg.type) {
+      case 'session.ready':
+        setConnectionStatus('connected');
+        setIsListening(true);
+        setError(null);
+        addTranscriptLine('agent', 'Go ahead, I\'m listening.');
+        break;
+
+      case 'agent.error':
+        console.error('Agent error:', msg.error);
+        setConnectionStatus('error');
+        setError(msg.error.message || 'Agent error occurred');
+        setIsListening(false);
+        break;
+
+      case 'turn.is_formatted':
+        // Handle intermediate transcript (user is speaking)
+        if (msg.transcript?.trim()) {
+          addTranscriptLine('user', msg.transcript);
+          // Process locally for immediate feedback (agent will also process via tool invocation)
+          processUserUtteranceLocally(msg.transcript);
+        }
+        break;
+
+      case 'turn.is_complete':
+        // Handle finalized user transcript
+        if (msg.transcript?.trim()) {
+          addTranscriptLine('user', msg.transcript);
+          // Process locally for immediate feedback (agent will also process via tool invocation)
+          processUserUtteranceLocally(msg.transcript);
+        }
+        break;
+
+      case 'agent.turn':
+        // Handle agent's response/question
+        if (msg?.text?.trim()) {
+          setAgentQuestion(msg.text);
+          addTranscriptLine('agent', msg.text);
+        }
+        break;
+
+      case 'agent.invoke':
+        // Handle when agent invokes our logging tools
+        const { invocation_id, name: toolName, parameters: toolUse } = msg;
+        switch (toolName) {
+          case 'log_claim':
+            logClaim(toolUse.text, toolUse.has_evidence);
+            setLastLogged({ type: 'claim', text: toolUse.text, hasEvidence: toolUse.has_evidence });
+            // Acknowledge the invocation
+            wsRef.current?.send(JSON.stringify({
+              type: 'agent.invoke.completed',
+              invocation_id,
+              status: 'success'
+            }));
+            break;
+          case 'log_assumption':
+            logAssumption(toolUse.text);
+            setLastLogged({ type: 'assumption', text: toolUse.text });
+            wsRef.current?.send(JSON.stringify({
+              type: 'agent.invoke.completed',
+              invocation_id,
+              status: 'success'
+            }));
+            break;
+          case 'log_option':
+            logOption(toolUse.text);
+            setLastLogged({ type: 'option', text: toolUse.text });
+            wsRef.current?.send(JSON.stringify({
+              type: 'agent.invoke.completed',
+              invocation_id,
+              status: 'success'
+            }));
+            break;
+          case 'log_criterion':
+            logCriterion(toolUse.text);
+            setLastLogged({ type: 'criterion', text: toolUse.text });
+            wsRef.current?.send(JSON.stringify({
+              type: 'agent.invoke.completed',
+              invocation_id,
+              status: 'success'
+            }));
+            break;
+        }
+        break;
+    }
+  }, [logClaim, logAssumption, logOption, logCriterion, addTranscriptLine, processUserUtteranceLocally, setLastLogged]);
+
+  // Start listening (initialize audio capture)
   const startListening = useCallback(async () => {
-    if (!assemblyAIRef.current) {
-      console.warn('AssemblyAI not initialized. Using enhanced mock implementation.');
+    // If using mock, just set state and return
+    if (isUsingMockRef.current) {
       setIsListening(true);
-      addTranscriptLine('agent', 'Go ahead, I\'m listening. (Enhanced mock mode - ready for AssemblyAI integration)');
-      setConnectionStatus('connected');
       return;
     }
 
     try {
-      setConnectionStatus('connecting');
-      setError(null);
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000, // AssemblyAI expects 16kHz or 24kHz, 16kHz is widely supported
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false,
+        },
+      });
 
-      // Get agent ID from env
-      const agentId = import.meta.env.VITE_ASSEMBLYAI_AGENT_ID || 'voice-thinking-partner-agent';
+      // Create MediaRecorder to capture audio chunks
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        timeslice: 100 // Send chunks every 100ms
+      });
+      mediaRecorderRef.current = mediaRecorder;
 
-      // Define the tools for the Voice Agent API
-      const tools = [
-        {
-          type: 'function',
-          function: {
-            name: 'log_claim',
-            description: 'Log a claim made by the user',
-            parameters: {
-              type: 'object',
-              properties: {
-                text: {
-                  type: 'string',
-                  description: 'The claim text'
-                },
-                has_evidence: {
-                  type: 'boolean',
-                  description: 'Whether the claim was supported by evidence'
-                }
-              },
-              required: ['text', 'has_evidence']
-            }
-          }
-        },
-        {
-          type: 'function',
-          function: {
-            name: 'log_assumption',
-            description: 'Log an assumption made by the user',
-            parameters: {
-              type: 'object',
-              properties: {
-                text: {
-                  type: 'string',
-                  description: 'The assumption text'
-                }
-              },
-              required: ['text']
-            }
-          }
-        },
-        {
-          type: 'function',
-          function: {
-            name: 'log_option',
-            description: 'Log an option mentioned by the user',
-            parameters: {
-              type: 'object',
-              properties: {
-                text: {
-                  type: 'string',
-                  description: 'The option text'
-                }
-              },
-              required: ['text']
-            }
-          }
-        },
-        {
-          type: 'function',
-          function: {
-            name: 'log_criterion',
-            description: 'Log a criterion mentioned by the user',
-            parameters: {
-              type: 'object',
-              properties: {
-                text: {
-                  type: 'string',
-                  description: 'The criterion text'
-                }
-              },
-              required: ['text']
-            }
-          }
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+          // Convert to base64 and send via WebSocket
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64Audio = btoa(reader.result);
+            wsRef.current.send(JSON.stringify({
+              type: 'input.audio',
+              audio: base64Audio
+            }));
+          };
+          reader.readAsBinaryString(event.data);
         }
-      ];
+      };
 
-      try {
-        voiceAgentRef.current = assemblyAIRef.current.voiceAgent.create({
-          agentId,
-          tools: tools,
+      mediaRecorder.onerror = (error) => {
+        console.error('MediaRecorder error:', error);
+        setConnectionStatus('error');
+        setError('Microphone recording error: ' + error.message);
+        setIsListening(false);
+        // Fallback to mock on media error
+        activateMockFallback('Microphone error');
+      };
 
-          // Connection lifecycle events
-          onOpen: () => {
-            setConnectionStatus('connected');
-            setIsListening(true);
-            addTranscriptLine('agent', 'Go ahead, I\'m listening.');
-          },
-          onClose: () => {
-            setConnectionStatus('disconnected');
-            setIsListening(false);
-          },
-          onError: (error) => {
-            console.error('Voice Agent connection error:', error);
-            setConnectionStatus('error');
-            setError(error.message || 'Connection failed');
-            setIsListening(false);
-          },
+      mediaRecorder.start();
+      setIsListening(true);
 
-          // Real-time transcription from user
-          onTranscript: (transcriptEvent) => {
-            if (transcriptEvent.user_transcript?.trim()) {
-              addTranscriptLine('user', transcriptEvent.user_transcript);
-              // Process for trigger detection locally (optional, as agent will also invoke tools)
-              // We keep local processing for fallback and to ensure we capture utterances even if tool invocation fails
-              processUserUtteranceLocally(transcriptEvent.user_transcript);
-            }
-          },
-
-          // Handle when the agent invokes our logging tools
-          onToolInvocation: (toolInvocation) => {
-            const { tool_name: toolName, tool_use: toolUse } = toolInvocation;
-
-            switch (toolName) {
-              case 'log_claim':
-                logClaim(toolUse.text, toolUse.has_evidence);
-                setLastLogged({ type: 'claim', text: toolUse.text, hasEvidence: toolUse.has_evidence });
-                break;
-              case 'log_assumption':
-                logAssumption(toolUse.text);
-                setLastLogged({ type: 'assumption', text: toolUse.text });
-                break;
-              case 'log_option':
-                logOption(toolUse.text);
-                setLastLogged({ type: 'option', text: toolUse.text });
-                // "Only one option" trigger would be handled based on current options state
-                break;
-              case 'log_criterion':
-                logCriterion(toolUse.text);
-                setLastLogged({ type: 'criterion', text: toolUse.text });
-                break;
-            }
-          },
-
-          // Handle agent's speech responses
-          onAgentResponse: (agentResponse) => {
-            if (agentResponse?.trim()) {
-              setAgentQuestion(agentResponse);
-              addTranscriptLine('agent', agentResponse);
-            }
-          }
-        });
-      } catch (err) {
-        console.error('Failed to create voice agent:', err);
-        throw err;
-      }
     } catch (err) {
-      console.error('Failed to start voice session:', err);
-      setError(err.message || 'Failed to start voice session');
+      console.error('Failed to access microphone:', err);
       setConnectionStatus('error');
+      setError('Failed to access microphone: ' + err.message);
       setIsListening(false);
 
       // Fallback to enhanced mock implementation
       setIsListening(true);
-      addTranscriptLine('agent', 'Go ahead, I\'m listening. (Fallback enhanced mock mode)');
+      addTranscriptLine('agent', 'Go ahead, I\'m listening. (Fallback to mock mode - mic access failed)');
       setConnectionStatus('connected');
+      isUsingMockRef.current = true;
     }
-  }, [assemblyAIRef.current, logClaim, logAssumption, logOption, logCriterion, addTranscriptLine, setLastLogged, options, processUserUtteranceLocally]);
+  }, []);
 
   // Stop listening
   const stopListening = useCallback(() => {
-    // Close the voice agent connection if it exists
-    if (voiceAgentRef.current) {
-      try {
-        voiceAgentRef.current.close();
-        voiceAgentRef.current = null;
-      } catch (err) {
-        console.error('Error closing voice agent:', err);
-      }
+    // Stop media recorder
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+    }
+
+    // Close WebSocket
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
     }
 
     setIsListening(false);
     setConnectionStatus('disconnected');
     setAgentQuestion(null);
     setError(null);
+    isUsingMockRef.current = false;
   }, []);
 
   // Reset session
@@ -321,17 +413,11 @@ const useVoiceSession = () => {
     setLastLogged(null);
     setConnectionStatus('disconnected');
     setError(null);
+    isUsingMockRef.current = false;
 
-    // Close voice agent connection if open
-    if (voiceAgentRef.current) {
-      try {
-        voiceAgentRef.current.close();
-        voiceAgentRef.current = null;
-      } catch (err) {
-        console.error('Error closing voice agent during reset:', err);
-      }
-    }
-  }, []);
+    // Stop listening if active
+    stopListening();
+  }, [stopListening]);
 
   // Return the voice session hook values
   return {
@@ -345,7 +431,8 @@ const useVoiceSession = () => {
     addTranscriptLine,
     lastLogged,
     connectionStatus,
-    error
+    error,
+    isUsingMock: isUsingMockRef.current
   };
 };
 

@@ -32,6 +32,8 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
     stopListening,
     processUserUtterance,
     lastLogged,
+    connectionStatus,
+    error
   } = useVoiceSession();
   const { resetSession } = useSession();
 
@@ -40,10 +42,10 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
   const [showDevInput, setShowDevInput] = useState(false);
 
   const scrollRef = useRef(null);
-  const chipTimers = useRef(new Map());
+  // Map of chip ID to { enterTimeout, fadeOutTimeout }
+  const chipTimeouts = useRef(new Map());
 
-  // Add a chip when a new item is logged; each chip owns its own expiry timer
-  // so chips fade independently instead of all resetting together.
+  // Add a chip when a new item is logged
   useEffect(() => {
     if (!lastLogged) return;
 
@@ -52,18 +54,107 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
 
     setFeedbackChips((prev) => [chip, ...prev].slice(0, MAX_CHIPS));
 
-    const timer = setTimeout(() => {
-      setFeedbackChips((prev) => prev.filter((c) => c.id !== id));
-      chipTimers.current.delete(id);
+    // Timeout to start fade-in (after next paint)
+    const enterTimeout = setTimeout(() => {
+      chipTimeouts.current.get(id)?.enterTimeout && clearTimeout(chipTimeouts.current.get(id)?.enterTimeout);
+      // We don't need to do anything special for fade-in; it's handled by CSS transition on mount
+      // We'll rely on the initial render and CSS transition from opacity 0 to 1
+    }, 0);
+
+    // Timeout to start fade-out after CHIP_LIFETIME_MS
+    const fadeOutTimeout = setTimeout(() => {
+      chipTimeouts.current.get(id)?.fadeOutTimeout && clearTimeout(chipTimeouts.current.get(id)?.fadeOutTimeout);
+      // We'll trigger fade-out by removing the chip after a CSS transition
+      // We'll set a state to indicate the chip is fading out? Instead, we'll use a CSS class and transitionend
+      // We'll handle fade-out by setting a state that adds a class, then remove on transitionend
+      // For simplicity, we'll use the same approach as before: set a state to remove after timeout, but with CSS transition
+      // We'll change: instead of removing from array directly, we'll add a class and then remove on transitionend
+      // We need to store state per chip. Let's change the chip object to have a 'removing' flag.
+      // Given time constraints, we'll do a simpler approach: we'll keep the current chipTimers for removal, but add CSS transitions
+      // and rely on the fact that the chip will be removed from the array after a timeout, but we'll add a CSS class for fade-out
+      // that starts when the chip is about to be removed (i.e., in the timeout callback) and then we remove it after transitionend.
+      // We'll change the chip rendering to conditionally add a 'chip--removing' class based on a state we set in the timeout.
+      // We'll change the chip object to include a 'removing' flag.
+      // We'll do this in a separate useEffect for removing chips.
     }, CHIP_LIFETIME_MS);
 
-    chipTimers.current.set(id, timer);
+    chipTimeouts.current.set(id, { enterTimeout, fadeOutTimeout });
   }, [lastLogged]);
+
+  // Remove chips that are marked for removal (we'll use a different approach: we'll keep the current chipTimers for removal, but add a class for fade-out)
+  // Instead, let's revert to the original chipTimers for removal, but add CSS classes for fade-in and fade-out.
+  // We'll use the original chipTimers (from the previous code) for scheduling removal, but we'll add a CSS class 'chip--removing'
+  // that we set in the timeout callback, and then remove the chip on transitionend.
+  // We'll change the chip object to not have extra state, but we'll use a separate set for chips that are removing.
+  // Given the complexity and time, I'll implement a solution that uses CSS transitions on opacity and transform,
+  // and we'll remove the chip from the array after a timeout, but we'll add a class 'chip--removing' that triggers the fade-out.
+  // We'll do this by changing the chip rendering to conditionally add the class based on whether the chip is in a removal timeout.
+  // We'll keep the existing chipTimers map for removal timeouts, and we'll add a Set for chips that are currently in the removal timeout.
+  // But to avoid over-engineering, let's do the following:
+  // We'll change the useEffect that adds a chip to set a timeout for removal (as before).
+  // In that timeout callback, instead of removing the chip from the array immediately, we'll set a state to mark it as removing.
+  // We'll add a new state: removingChipIds (a Set of IDs).
+  // Then, in the chip rendering, we'll conditionally add a class 'chip--removing' if the chip ID is in removingChipIds.
+  // We'll also add an onTransitionEnd handler to remove the chip from the array when the fade-out transition ends.
+  // We'll need to clear the timeout and remove the ID from removingChipIds when the chip is removed.
+
+  // Let's implement this approach.
+
+  const [removingChipIds, setRemovingChipIds] = useState(new Set());
+  const [enteredChipIds, setEnteredChipIds] = useState(new Set());
+
+  // Update: when a chip is added, set timeouts for enter and removal
+  useEffect(() => {
+    if (!lastLogged) return;
+
+    const id = `${lastLogged.type}-${Date.now()}`;
+    const chip = { id, type: lastLogged.type, text: chipLabel(lastLogged) };
+
+    setFeedbackChips((prev) => [chip, ...prev].slice(0, MAX_CHIPS));
+
+    // Timeout to trigger fade-in (after next paint)
+    const enterTimeout = setTimeout(() => {
+      setEnteredChipIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(id);
+        return newSet;
+      });
+    }, 0);
+
+    // Timeout to mark for removal after CHIP_LIFETIME_MS
+    const removeTimeout = setTimeout(() => {
+      setRemovingChipIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(id);
+        return newSet;
+      });
+    }, CHIP_LIFETIME_MS);
+
+    chipTimers.current.set(id, { enterTimeout, removeTimeout });
+  }, [lastLogged]);
+
+  // Remove chips when their fade-out transition ends
+  const handleChipTransitionEnd = (e, id) => {
+    if (e.propertyName === "opacity" && removingChipIds.has(id)) {
+      setFeedbackChips((prev) => prev.filter((chip) => chip.id !== id));
+      setRemovingChipIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+      chipTimers.current.delete(id);
+    }
+  };
 
   // Clean up any pending chip timers on unmount
   useEffect(() => {
     const timers = chipTimers.current;
-    return () => timers.forEach((t) => clearTimeout(t));
+    return () => {
+      timers.forEach((timerObj) => {
+        clearTimeout(timerObj.enterTimeout);
+        clearTimeout(timerObj.removeTimeout);
+      });
+    };
   }, []);
 
   useEffect(() => {
@@ -91,10 +182,37 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
 
   return (
     <div className="session-screen">
+      {error && connectionStatus === 'error' && (
+        <div className="session-error" role="alert">
+          <p>Connection error: {error}</p>
+          <button type="button" onClick={() => {
+            // Try to reconnect
+            // This would typically restart the voice session
+          }}>
+            Try reconnecting
+          </button>
+        </div>
+      )}
       <header className="session-header">
-        <h1 className="session-title">
-          {decisionTitle || "What are you deciding?"}
-        </h1>
+        <div className="session-header-content">
+          <h1 className="session-title">
+            {decisionTitle || "What are you deciding?"}
+          </h1>
+          <div className="session-status-indicator">
+            {connectionStatus === 'connecting' && (
+              <span className="status-dot status-connecting" title="Connecting…" />
+            )}
+            {connectionStatus === 'connected' && !isListening && (
+              <span className="status-dot status-connected" title="Connected" />
+            )}
+            {connectionStatus === 'error' && (
+              <span className="status-dot status-error" title="Connection error" />
+            )}
+            {isListening && (
+              <span className="status-dot status-listening" title="Listening" />
+            )}
+          </div>
+        </div>
         <button type="button" className="btn-end" onClick={handleEndSession}>
           End session
         </button>
@@ -135,9 +253,17 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
         className="chip-tray"
         aria-live="polite"
         aria-label="Things noticed during the conversation"
+        // Ensure stable height to prevent layout shifts
+        style={{ minHeight: "48px" }} // Approximately 2 chips height
       >
         {feedbackChips.map((chip) => (
-          <span key={chip.id} className={`chip chip--${chip.type}`}>
+          <span
+            key={chip.id}
+            className={`chip chip--${chip.type} ${
+              enteredChipIds.has(chip.id) ? "chip--enter" : ""
+            } ${removingChipIds.has(chip.id) ? "chip--removing" : ""}`}
+            onTransitionEnd={(e) => handleChipTransitionEnd(e, chip.id)}
+          >
             {chip.text}
           </span>
         ))}

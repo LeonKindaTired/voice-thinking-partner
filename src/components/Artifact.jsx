@@ -4,6 +4,54 @@ import "../styles/Artifact.css";
 
 const Artifact = ({ decisionTitle, onRestart }) => {
   const { claims, assumptions, options, criteria } = useSession();
+  const [shareStatus, setShareStatus] = useState("idle"); // idle, sharing, copied, shared, error
+  const [isSharing, setIsSharing] = useState(false);
+
+  const handleShare = async () => {
+    const text = `
+      Decision Map: ${decisionTitle || 'Untitled decision'}
+
+      Claims you made (${claims.length}):
+      ${claims.map(c => `- ${c.text} ${!c.hasEvidence ? '(no evidence)' : ''}`).join('\n')}
+
+      Assumptions surfaced (${assumptions.length}):
+      ${assumptions.map(a => `- ${a.text}`).join('\n')}
+
+      Options considered (${options.length}):
+      ${options.length > 0 ? options.map(o => `- ${o.text}`).join('\n') : 'None'}
+
+      Criteria named (${criteria.length}):
+      ${criteria.length > 0 ? criteria.map(c => `- ${c.text}`).join('\n') : 'None'}
+    `.trim();
+
+    setIsSharing(true);
+    setShareStatus("sharing");
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'My Decision Map',
+          text: text
+        });
+        setShareStatus('shared');
+      } else {
+        await navigator.clipboard.writeText(text);
+        setShareStatus('copied');
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
+      setShareStatus('error');
+    }
+
+    setIsSharing(false);
+
+    // Reset status after 2 seconds for copied/shared states
+    if (shareStatus === 'copied' || shareStatus === 'shared') {
+      setTimeout(() => {
+        setShareStatus('idle');
+      }, 2000);
+    }
+  };
 
   return (
     <div className="artifact-screen">
@@ -106,6 +154,14 @@ const Artifact = ({ decisionTitle, onRestart }) => {
             className="artifact-restart"
           >
             Start a new session
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={isSharing}
+            className={`artifact-share-button ${shareStatus}`}
+          >
+            {shareStatus === "copied" ? "Copied!" : shareStatus === "shared" ? "Shared!" : shareStatus === "error" ? "Error" : "Share"}
           </button>
         </div>
       </div>
