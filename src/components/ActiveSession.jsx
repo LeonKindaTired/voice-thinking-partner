@@ -42,38 +42,29 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
   const [showDevInput, setShowDevInput] = useState(false);
 
   const scrollRef = useRef(null);
-  const chipTimers = useRef(new Map());
-  const [removingChipIds, setRemovingChipIds] = useState(new Set());
-  const [enteredChipIds, setEnteredChipIds] = useState(new Set());
 
   // Add a chip when a new item is logged
   useEffect(() => {
     if (!lastLogged) return;
 
     const id = `${lastLogged.type}-${Date.now()}`;
-    const chip = { id, type: lastLogged.type, text: chipLabel(lastLogged) };
+    const chip = { id, type: lastLogged.type, text: chipLabel(lastLogged), isEntered: false, isRemoving: false };
 
     setFeedbackChips((prev) => [chip, ...prev].slice(0, MAX_CHIPS));
 
-    // Timeout to trigger fade-in (after next paint)
+    // Trigger enter animation after next paint
     const enterTimeout = setTimeout(() => {
-      setEnteredChipIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.add(id);
-        return newSet;
-      });
+      setFeedbackChips((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, isEntered: true } : c))
+      );
     }, 0);
 
-    // Timeout to mark for removal after CHIP_LIFETIME_MS
+    // Trigger remove animation after CHIP_LIFETIME_MS
     const removeTimeout = setTimeout(() => {
-      setRemovingChipIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.add(id);
-        return newSet;
-      });
+      setFeedbackChips((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, isRemoving: true } : c))
+      );
     }, CHIP_LIFETIME_MS);
-
-    chipTimers.current.set(id, { enterTimeout, removeTimeout });
 
     // Cleanup on unmount
     return () => {
@@ -82,29 +73,12 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
     };
   }, [lastLogged]);
 
-  // Remove chips when their fade-out transition ends
+  // Remove chips when their remove animation ends
   const handleChipTransitionEnd = (e, id) => {
-    if (e.propertyName === "opacity" && removingChipIds.has(id)) {
+    if (e.propertyName === "opacity") {
       setFeedbackChips((prev) => prev.filter((chip) => chip.id !== id));
-      setRemovingChipIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-      chipTimers.current.delete(id);
     }
   };
-
-  // Clean up any pending chip timers on unmount
-  useEffect(() => {
-    const timers = chipTimers.current;
-    return () => {
-      timers.forEach((timerObj) => {
-        clearTimeout(timerObj.enterTimeout);
-        clearTimeout(timerObj.removeTimeout);
-      });
-    };
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -208,9 +182,7 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
         {feedbackChips.map((chip) => (
           <span
             key={chip.id}
-            className={`chip chip--${chip.type} ${
-              enteredChipIds.has(chip.id) ? "chip--enter" : ""
-            } ${removingChipIds.has(chip.id) ? "chip--removing" : ""}`}
+            className={`chip chip--${chip.type} ${chip.isEntered ? "chip--enter" : ""} ${chip.isRemoving ? "chip--removing" : ""}`}
             onTransitionEnd={(e) => handleChipTransitionEnd(e, chip.id)}
           >
             {chip.text}
