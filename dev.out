@@ -1,0 +1,36 @@
+
+> voice-thinking-partner@0.1.0 dev
+> vite
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m1996[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3000[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m2:34:55 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m2:35:52 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m2:35:57 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m2:39:00 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m2:41:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m2:42:19 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m2:42:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m2:42:49 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m2:43:17 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/main.jsx[22m
+[2m2:44:38 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m2:44:38 PM[22m [36m[1m[vite][22m[39m server restarted.
+[2m2:46:56 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m2:46:56 PM[22m [36m[1m[vite][22m[39m server restarted.
+[2m3:17:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:17:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:17:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:00 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:23 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:30 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:37 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:43 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:19:14 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:19:25 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:19:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m

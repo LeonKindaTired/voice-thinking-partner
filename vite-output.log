@@ -1,0 +1,23 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+Port 3000 is in use, trying another one...
+Port 3001 is in use, trying another one...
+Port 3002 is in use, trying another one...
+Port 3003 is in use, trying another one...
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m483[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3004[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m3:17:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:17:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:17:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:00 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:23 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:30 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:37 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:43 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:18:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:19:14 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:19:25 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m
+[2m3:19:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ActiveSession.jsx[22m

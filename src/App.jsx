@@ -10,7 +10,7 @@ import Artifact from "./components/Artifact";
 import History from "./components/History";
 
 function App() {
-  const [screen, setScreen] = useState("landing");
+  const [screen, setScreen] = useState("active");
   const [decisionTitle, setDecisionTitle] = useState("");
 
   const [history, setHistory] = useState(() => {
@@ -19,6 +19,12 @@ function App() {
   });
 
   const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    console.log("App screen set to:", screen);
+  }, [screen]);
+
+  // HMR trigger
 
   const { resetSession, claims, assumptions, options, criteria } = useSession();
 

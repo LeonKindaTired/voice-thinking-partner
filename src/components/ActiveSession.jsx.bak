@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import useVoiceSession from "../hooks/useVoiceSession";
 import { useSession } from "../SessionContext";
-import "/src/styles/ActiveSession.css";
-
-console.log("ActiveSession component loaded");
+import "../styles/ActiveSession.css";
 
 const CHIP_LIFETIME_MS = 4000; // how long a chip stays before fading out
 const MAX_CHIPS = 5;

@@ -1,4 +1,3 @@
-console.log("useVoiceSession module loaded");
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSession } from "../SessionContext";
 
@@ -6,11 +5,6 @@ import { useSession } from "../SessionContext";
 // For production: set up a token service (see voice-agent-starter-js/deployment/browser/)
 // For development: falls back to mock implementation if no token service available
 const useVoiceSession = () => {
-  console.log("useVoiceSession hook called");
-  console.log("useVoiceSession: VITE_USE_MOCK_VOICE =", import.meta.env.VITE_USE_MOCK_VOICE);
-  console.log("useVoiceSession: VITE_ASSEMBLYAI_API_KEY present =", !!import.meta.env.VITE_ASSEMBLYAI_API_KEY);
-  console.log("useVoiceSession: VITE_ASSEMBLYAI_AGENT_ID present =", !!import.meta.env.VITE_ASSEMBLYAI_AGENT_ID);
-  console.log("useVoiceSession: VITE_TOKEN_ENDPOINT =", import.meta.env.VITE_TOKEN_ENDPOINT);
   const { logClaim, logAssumption, logOption, logCriterion, options } =
     useSession();
   const [transcript, setTranscript] = useState([]); // array of { speaker: 'user'|'agent', text }
@@ -216,21 +210,17 @@ const useVoiceSession = () => {
         isUsingMockRef.current = false;
 
         // Fetch token from endpoint
-        console.log("useVoiceSession: Fetching token from", tokenEndpoint);
         let token;
         try {
           const tokenResponse = await fetch(tokenEndpoint);
-          console.log("useVoiceSession: Token response status:", tokenResponse.status);
           if (!tokenResponse.ok) {
             throw new Error(`Failed to fetch token: ${tokenResponse.status}`);
           }
           const tokenData = await tokenResponse.json();
-          console.log("useVoiceSession: Token data received:", tokenData);
           token = tokenData.token || tokenData.access_token;
           if (!token) {
             throw new Error("No token received from token endpoint");
           }
-          console.log("useVoiceSession: Token extracted successfully");
         } catch (tokenError) {
           console.warn(
             "Token fetch failed, falling back to mock:",
@@ -240,12 +230,11 @@ const useVoiceSession = () => {
         }
 
         // Create WebSocket connection to AssemblyAI
-        console.log("useVoiceSession: Creating WebSocket connection to AssemblyAI");
         const ws = new WebSocket("wss://agents.assemblyai.com/v1/ws");
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log("useVoiceSession: WebSocket connected to AssemblyAI");
+          console.log("WebSocket connected to AssemblyAI");
           // Send session.update to specify which agent to use
           ws.send(
             JSON.stringify({
@@ -256,7 +245,6 @@ const useVoiceSession = () => {
         };
 
         ws.onmessage = (event) => {
-          console.log("useVoiceSession: Received WebSocket message:", event.data);
           try {
             const msg = JSON.parse(event.data);
             handleAssemblyAIMessage(msg);
@@ -266,7 +254,7 @@ const useVoiceSession = () => {
         };
 
         ws.onerror = (error) => {
-          console.error("useVoiceSession: WebSocket error:", error);
+          console.error("WebSocket error:", error);
           setConnectionStatus("error");
           setError(error.message || "WebSocket connection error");
           setIsListening(false);
@@ -275,7 +263,7 @@ const useVoiceSession = () => {
         };
 
         ws.onclose = () => {
-          console.log("useVoiceSession: WebSocket closed");
+          console.log("WebSocket closed");
           setConnectionStatus("disconnected");
           setIsListening(false);
           setAgentQuestion(null);
@@ -293,7 +281,7 @@ const useVoiceSession = () => {
         };
       } catch (err) {
         console.warn(
-          "useVoiceSession: Failed to initialize voice session, falling back to mock:",
+          "Failed to initialize voice session, falling back to mock:",
           err.message
         );
         activateMockFallback("Initialization failed: " + err.message);
@@ -302,7 +290,7 @@ const useVoiceSession = () => {
 
     // Activate mock fallback
     const activateMockFallback = (reason) => {
-      console.log("useVoiceSession: Activating mock fallback:", reason);
+      console.info(`Activating mock fallback: ${reason}`);
       setIsListening(true);
       addTranscriptLine(
         "agent",
@@ -316,7 +304,6 @@ const useVoiceSession = () => {
 
     // Cleanup function
     return () => {
-      console.log("useVoiceSession: Cleaning up voice session");
       isUsingMockRef.current = false;
       if (wsRef.current) {
         wsRef.current.close();
@@ -335,10 +322,8 @@ const useVoiceSession = () => {
   // Handle incoming messages from AssemblyAI
   const handleAssemblyAIMessage = useCallback(
     (msg) => {
-      console.log("useVoiceSession: Handling AssemblyAI message:", msg.type);
       switch (msg.type) {
         case "session.ready":
-          console.log("useVoiceSession: Session ready");
           setConnectionStatus("connected");
           setIsListening(true);
           setError(null);
@@ -355,7 +340,6 @@ const useVoiceSession = () => {
         case "turn.is_formatted":
           // Handle intermediate transcript (user is speaking)
           if (msg.transcript?.trim()) {
-            console.log("useVoiceSession: Received interim transcript:", msg.transcript);
             addTranscriptLine("user", msg.transcript);
             // Process locally for immediate feedback (agent will also process via tool invocation)
             processUserUtteranceLocally(msg.transcript);
@@ -365,7 +349,6 @@ const useVoiceSession = () => {
         case "turn.is_complete":
           // Handle finalized user transcript
           if (msg.transcript?.trim()) {
-            console.log("useVoiceSession: Received complete transcript:", msg.transcript);
             addTranscriptLine("user", msg.transcript);
             // Process locally for immediate feedback (agent will also process via tool invocation)
             processUserUtteranceLocally(msg.transcript);
@@ -375,7 +358,6 @@ const useVoiceSession = () => {
         case "agent.turn":
           // Handle agent's response/question
           if (msg?.text?.trim()) {
-            console.log("useVoiceSession: Received agent text:", msg.text);
             setAgentQuestion(msg.text);
             addTranscriptLine("agent", msg.text);
           }
@@ -383,7 +365,6 @@ const useVoiceSession = () => {
 
         case "agent.invoke":
           // Handle when agent invokes our logging tools
-          console.log("useVoiceSession: Handling agent.invoke for tool:", msg.name);
           const { invocation_id, name: toolName, parameters: toolUse } = msg;
           switch (toolName) {
             case "log_claim":
@@ -452,17 +433,13 @@ const useVoiceSession = () => {
 
   // Start listening (initialize audio capture)
   const startListening = useCallback(async () => {
-    console.log("useVoiceSession: startListening called");
-    console.log("useVoiceSession: isUsingMockRef.current =", isUsingMockRef.current);
     // If using mock, just set state and return
     if (isUsingMockRef.current) {
-      console.log("useVoiceSession: Using mock, setting isListening to true");
       setIsListening(true);
       return;
     }
 
     try {
-      console.log("useVoiceSession: Requesting microphone access");
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -475,13 +452,11 @@ const useVoiceSession = () => {
       });
 
       // Create MediaRecorder to capture audio chunks
-      console.log("useVoiceSession: Creating MediaRecorder");
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: "audio/webm;codecs=opus",
         timeslice: 100, // Send chunks every 100ms
       });
       mediaRecorderRef.current = mediaRecorder;
-      console.log("useVoiceSession: MediaRecorder created");
 
       mediaRecorder.ondataavailable = (event) => {
         if (
@@ -512,17 +487,15 @@ const useVoiceSession = () => {
         activateMockFallback("Microphone error");
       };
 
-      console.log("useVoiceSession: Starting MediaRecorder");
       mediaRecorder.start();
       setIsListening(true);
     } catch (err) {
-      console.error("useVoiceSession: Failed to access microphone:", err);
+      console.error("Failed to access microphone:", err);
       setConnectionStatus("error");
       setError("Failed to access microphone: " + err.message);
       setIsListening(false);
 
       // Fallback to enhanced mock implementation
-      console.log("useVoiceSession: Falling back to mock due to microphone error");
       setIsListening(true);
       addTranscriptLine(
         "agent",
