@@ -166,7 +166,7 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
             {line.text}
           </p>
         ))}
-        {agentQuestion && (
+        {agentQuestion && transcript[transcript.length - 1]?.text !== agentQuestion && (
           <p className="transcript-line transcript-line--agent transcript-line--active">
             <span className="transcript-speaker">Agent</span>
             {agentQuestion}

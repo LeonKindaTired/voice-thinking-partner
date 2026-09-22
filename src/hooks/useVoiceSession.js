@@ -2,6 +2,70 @@ console.log("useVoiceSession module loaded");
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSession } from "../SessionContext";
 
+const VOICE_SAMPLE_RATE = 24000;
+const CAPTURE_WORKLET = `
+  class CaptureProcessor extends AudioWorkletProcessor {
+    constructor() {
+      super();
+      this.ratio = sampleRate / ${VOICE_SAMPLE_RATE};
+      this.position = 0;
+      this.previous = 0;
+      this.source = null;
+      this.output = null;
+    }
+    toPcm(samples, length) {
+      const pcm = new Int16Array(length);
+      for (let i = 0; i < length; i++) {
+        const sample = Math.max(-1, Math.min(1, samples[i]));
+        pcm[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+      }
+      return pcm;
+    }
+    process(inputs) {
+      const channel = inputs[0]?.[0];
+      if (!channel) return true;
+      if (this.ratio === 1) {
+        const pcm = this.toPcm(channel, channel.length);
+        this.port.postMessage(pcm.buffer, [pcm.buffer]);
+        return true;
+      }
+      const length = channel.length;
+      if (!this.source || this.source.length < length + 1) {
+        this.source = new Float32Array(length + 1);
+        this.output = new Float32Array(Math.ceil((length + 1) / this.ratio) + 2);
+      }
+      this.source[0] = this.previous;
+      this.source.set(channel, 1);
+      let outputLength = 0;
+      let position = this.position;
+      while (position < length) {
+        const index = Math.floor(position);
+        const fraction = position - index;
+        this.output[outputLength++] = this.source[index] +
+          (this.source[index + 1] - this.source[index]) * fraction;
+        position += this.ratio;
+      }
+      this.position = position - length;
+      this.previous = channel[length - 1];
+      if (outputLength) {
+        const pcm = this.toPcm(this.output, outputLength);
+        this.port.postMessage(pcm.buffer, [pcm.buffer]);
+      }
+      return true;
+    }
+  }
+  registerProcessor('capture', CaptureProcessor);
+`;
+
+const toBase64 = (buffer) => {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+};
+
 // Voice session hook using AssemblyAI Voice Agent API via token endpoint
 // For production: set up a token service (see voice-agent-starter-js/deployment/browser/)
 // For development: falls back to mock implementation if no token service available
@@ -22,17 +86,30 @@ const useVoiceSession = () => {
 
   const wsRef = useRef(null);
   const mediaRecorderRef = useRef(null);
+  const microphoneStreamRef = useRef(null);
+  const captureContextRef = useRef(null);
+  const captureNodeRef = useRef(null);
+  const captureSinkRef = useRef(null);
+  const sentAudioPacketRef = useRef(false);
   const isUsingMockRef = useRef(false);
+  const greetingShownRef = useRef(false);
 
   // Add a line to the transcript
   const addTranscriptLine = useCallback((speaker, text) => {
-    setTranscript((prev) => [...prev, { speaker, text: text.trim() }]);
+    const normalizedText = text.trim();
+    if (!normalizedText) return;
+    setTranscript((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.speaker === speaker && last.text === normalizedText) return prev;
+      return [...prev, { speaker, text: normalizedText }];
+    });
     // Auto-scroll would be handled in component
   }, []);
 
   // Process user utterance for triggers (fallback/local processing)
   const processUserUtteranceLocally = useCallback(
     (text) => {
+      addTranscriptLine("user", text);
       const lowerText = text.toLowerCase();
       let triggered = false;
 
@@ -158,10 +235,6 @@ const useVoiceSession = () => {
         triggered = true;
       }
 
-      // If no trigger matched, we just log the utterance as a regular transcript line
-      if (!triggered) {
-        addTranscriptLine("user", text);
-      }
     },
     [
       logClaim,
@@ -241,7 +314,9 @@ const useVoiceSession = () => {
 
         // Create WebSocket connection to AssemblyAI
         console.log("useVoiceSession: Creating WebSocket connection to AssemblyAI");
-        const ws = new WebSocket("wss://agents.assemblyai.com/v1/ws");
+        const wsUrl = new URL("wss://agents.assemblyai.com/v1/ws");
+        wsUrl.searchParams.set("token", token);
+        const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -340,9 +415,15 @@ const useVoiceSession = () => {
         case "session.ready":
           console.log("useVoiceSession: Session ready");
           setConnectionStatus("connected");
-          setIsListening(true);
+          // The WebSocket being ready does not mean microphone capture has
+          // started. Keep the start button visible until getUserMedia and the
+          // AudioWorklet are initialized by the user's click.
+          setIsListening(false);
           setError(null);
-          addTranscriptLine("agent", "Go ahead, I'm listening.");
+          if (!greetingShownRef.current) {
+            addTranscriptLine("agent", "Go ahead, I'm listening.");
+            greetingShownRef.current = true;
+          }
           break;
 
         case "agent.error":
@@ -356,7 +437,6 @@ const useVoiceSession = () => {
           // Handle intermediate transcript (user is speaking)
           if (msg.transcript?.trim()) {
             console.log("useVoiceSession: Received interim transcript:", msg.transcript);
-            addTranscriptLine("user", msg.transcript);
             // Process locally for immediate feedback (agent will also process via tool invocation)
             processUserUtteranceLocally(msg.transcript);
           }
@@ -366,9 +446,30 @@ const useVoiceSession = () => {
           // Handle finalized user transcript
           if (msg.transcript?.trim()) {
             console.log("useVoiceSession: Received complete transcript:", msg.transcript);
-            addTranscriptLine("user", msg.transcript);
             // Process locally for immediate feedback (agent will also process via tool invocation)
             processUserUtteranceLocally(msg.transcript);
+          }
+          break;
+
+        // Current AssemblyAI Voice Agent protocol events.
+        // `transcript.user.delta` is interim text; `transcript.user` is final.
+        case "transcript.user.delta":
+          if (msg.text?.trim()) {
+            console.log("useVoiceSession: Received interim user transcript:", msg.text);
+          }
+          break;
+
+        case "transcript.user":
+          if (msg.text?.trim()) {
+            console.log("useVoiceSession: Received user transcript:", msg.text);
+            processUserUtteranceLocally(msg.text);
+          }
+          break;
+
+        case "transcript.agent":
+          if (msg.text?.trim()) {
+            setAgentQuestion(msg.text);
+            addTranscriptLine("agent", msg.text);
           }
           break;
 
@@ -463,57 +564,51 @@ const useVoiceSession = () => {
 
     try {
       console.log("useVoiceSession: Requesting microphone access");
-      // Request microphone access
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Microphone access is unavailable. Use HTTPS or localhost.");
+      }
+
+      // AssemblyAI Voice Agent expects base64-encoded PCM16, not WebM/Opus.
+      // Create the context from the user gesture so Safari will allow it.
+      const captureContext = new AudioContext({ sampleRate: VOICE_SAMPLE_RATE });
+      await captureContext.resume();
+      const workletUrl = URL.createObjectURL(
+        new Blob([CAPTURE_WORKLET], { type: "application/javascript" })
+      );
+      try {
+        await captureContext.audioWorklet.addModule(workletUrl);
+      } finally {
+        URL.revokeObjectURL(workletUrl);
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
-          sampleRate: 16000, // AssemblyAI expects 16kHz or 24kHz, 16kHz is widely supported
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: false,
         },
       });
-
-      // Create MediaRecorder to capture audio chunks
-      console.log("useVoiceSession: Creating MediaRecorder");
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "audio/webm;codecs=opus",
-        timeslice: 100, // Send chunks every 100ms
-      });
-      mediaRecorderRef.current = mediaRecorder;
-      console.log("useVoiceSession: MediaRecorder created");
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (
-          event.data.size > 0 &&
-          wsRef.current?.readyState === WebSocket.OPEN
-        ) {
-          // Convert to base64 and send via WebSocket
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const base64Audio = btoa(reader.result);
-            wsRef.current.send(
-              JSON.stringify({
-                type: "input.audio",
-                audio: base64Audio,
-              })
-            );
-          };
-          reader.readAsBinaryString(event.data);
+      microphoneStreamRef.current = stream;
+      captureContextRef.current = captureContext;
+      const captureNode = new AudioWorkletNode(captureContext, "capture");
+      captureNodeRef.current = captureNode;
+      captureNode.port.onmessage = ({ data }) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          if (!sentAudioPacketRef.current) {
+            console.log("useVoiceSession: Sending microphone PCM audio");
+            sentAudioPacketRef.current = true;
+          }
+          wsRef.current.send(JSON.stringify({ type: "input.audio", audio: toBase64(data) }));
         }
       };
-
-      mediaRecorder.onerror = (error) => {
-        console.error("MediaRecorder error:", error);
-        setConnectionStatus("error");
-        setError("Microphone recording error: " + error.message);
-        setIsListening(false);
-        // Fallback to mock on media error
-        activateMockFallback("Microphone error");
-      };
-
-      console.log("useVoiceSession: Starting MediaRecorder");
-      mediaRecorder.start();
+      captureContext.createMediaStreamSource(stream).connect(captureNode);
+      // Keep the worklet in the render graph. The zero-gain sink prevents
+      // microphone feedback while ensuring browsers continue pulling audio.
+      const captureSink = captureContext.createGain();
+      captureSink.gain.value = 0;
+      captureNode.connect(captureSink).connect(captureContext.destination);
+      captureSinkRef.current = captureSink;
       setIsListening(true);
     } catch (err) {
       console.error("useVoiceSession: Failed to access microphone:", err);
@@ -521,28 +616,23 @@ const useVoiceSession = () => {
       setError("Failed to access microphone: " + err.message);
       setIsListening(false);
 
-      // Fallback to enhanced mock implementation
-      console.log("useVoiceSession: Falling back to mock due to microphone error");
-      setIsListening(true);
-      addTranscriptLine(
-        "agent",
-        "Go ahead, I'm listening. (Fallback to mock mode - mic access failed)"
-      );
-      setConnectionStatus("connected");
-      isUsingMockRef.current = true;
+      microphoneStreamRef.current?.getTracks().forEach((track) => track.stop());
+      microphoneStreamRef.current = null;
+      captureContextRef.current?.close();
+      captureContextRef.current = null;
     }
   }, []);
 
   // Stop listening
   const stopListening = useCallback(() => {
-    // Stop media recorder
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state !== "inactive"
-    ) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-    }
+    captureNodeRef.current?.disconnect();
+    captureNodeRef.current = null;
+    captureSinkRef.current?.disconnect();
+    captureSinkRef.current = null;
+    microphoneStreamRef.current?.getTracks().forEach((track) => track.stop());
+    microphoneStreamRef.current = null;
+    captureContextRef.current?.close();
+    captureContextRef.current = null;
 
     // Close WebSocket
     if (wsRef.current) {
