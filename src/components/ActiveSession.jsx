@@ -31,6 +31,7 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
     agentQuestion,
     isListening,
     startListening,
+    pauseListening,
     stopListening,
     processUserUtterance,
     lastLogged,
@@ -96,6 +97,10 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
     stopListening();
     onEnd();
   }, [stopListening, onEnd]);
+
+  const handlePauseListening = useCallback(() => {
+    pauseListening();
+  }, [pauseListening]);
 
   const handleDevSubmit = (e) => {
     e.preventDefault();
@@ -202,9 +207,18 @@ const ActiveSession = ({ decisionTitle, onEnd }) => {
             Start talking
           </button>
         ) : (
-          <div className="listening-indicator" aria-live="polite">
-            <span className="listening-indicator__pulse" aria-hidden="true" />
-            <span className="listening-indicator__label">Listening</span>
+          <div className="listening-controls">
+            <div className="listening-indicator" aria-live="polite">
+              <span className="listening-indicator__pulse" aria-hidden="true" />
+              <span className="listening-indicator__label">Listening</span>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handlePauseListening}
+            >
+              Stop listening
+            </button>
           </div>
         )}
       </div>

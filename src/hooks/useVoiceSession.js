@@ -623,6 +623,20 @@ const useVoiceSession = () => {
     }
   }, []);
 
+  // Pause microphone capture without closing the WebSocket session. This
+  // allows the user to resume from the same screen with the same button.
+  const pauseListening = useCallback(() => {
+    captureNodeRef.current?.disconnect();
+    captureNodeRef.current = null;
+    captureSinkRef.current?.disconnect();
+    captureSinkRef.current = null;
+    microphoneStreamRef.current?.getTracks().forEach((track) => track.stop());
+    microphoneStreamRef.current = null;
+    captureContextRef.current?.close();
+    captureContextRef.current = null;
+    setIsListening(false);
+  }, []);
+
   // Stop listening
   const stopListening = useCallback(() => {
     captureNodeRef.current?.disconnect();
@@ -667,6 +681,7 @@ const useVoiceSession = () => {
     agentQuestion,
     isListening,
     startListening,
+    pauseListening,
     stopListening,
     processUserUtterance: processUserUtteranceLocally, // For manual input fallback
     reset,
