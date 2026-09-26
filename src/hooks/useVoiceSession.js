@@ -93,6 +93,32 @@ const useVoiceSession = () => {
   const sentAudioPacketRef = useRef(false);
   const isUsingMockRef = useRef(false);
   const greetingShownRef = useRef(false);
+  const processedUtterancesRef = useRef(new Set());
+  const exploredTriggersRef = useRef(new Set());
+
+  const questionForTrigger = useCallback((trigger, text) => {
+    const subject = text.replace(/^(i|we)\s+(think|believe|feel|know)\s+/i, "").trim();
+    const shortSubject = subject.length > 90 ? `${subject.slice(0, 87)}...` : subject;
+
+    switch (trigger) {
+      case "claim":
+        return shortSubject
+          ? `What specific experience or evidence is that based on?`
+          : "What evidence would help you test that?";
+      case "assumption":
+        return shortSubject
+          ? `What would need to be true for that belief about ${shortSubject} to hold?`
+          : "What would need to be true for that belief to hold?";
+      case "option":
+        return shortSubject
+          ? `Besides ${shortSubject}, what other path could meet what you need?`
+          : "What other path could meet what you need?";
+      case "criterion":
+        return "Of the things you mentioned, which outcome matters most for this decision?";
+      default:
+        return "What part of this decision feels least clear right now?";
+    }
+  }, []);
 
   // Add a line to the transcript
   const addTranscriptLine = useCallback((speaker, text) => {
@@ -109,8 +135,22 @@ const useVoiceSession = () => {
   // Process user utterance for triggers (fallback/local processing)
   const processUserUtteranceLocally = useCallback(
     (text) => {
-      addTranscriptLine("user", text);
-      const lowerText = text.toLowerCase();
+      const normalizedUtterance = text.trim().replace(/\s+/g, " ");
+      if (!normalizedUtterance) return;
+      // Voice Agent can emit the same turn through more than one event type.
+      // Process a user turn only once so one statement cannot produce a
+      // cascade of identical questions or duplicate artifact entries.
+      const utteranceKey = normalizedUtterance.toLowerCase();
+      if (processedUtterancesRef.current.has(utteranceKey)) return;
+      processedUtterancesRef.current.add(utteranceKey);
+
+      addTranscriptLine("user", normalizedUtterance);
+      // In a real session the AssemblyAI agent owns the response and its
+      // tool calls. The local trigger engine is only the mock fallback;
+      // running both would make the user receive two follow-up questions.
+      if (!isUsingMockRef.current) return;
+
+      const lowerText = normalizedUtterance.toLowerCase();
       let triggered = false;
 
       // Check for claim pattern: statements of fact without evidentiary markers
@@ -141,19 +181,14 @@ const useVoiceSession = () => {
         lowerText.includes(marker)
       );
       if (hasClaimPattern) {
-        logClaim(text, hasEvidence);
-        setLastLogged({ type: "claim", text });
-        addTranscriptLine(
-          "agent",
-          hasEvidence
-            ? "Got it, that claim has evidence."
-            : "How do you know that?"
-        );
-        setAgentQuestion(
-          hasEvidence
-            ? "Got it, that claim has evidence."
-            : "How do you know that?"
-        );
+        logClaim(normalizedUtterance, hasEvidence);
+        setLastLogged({ type: "claim", text: normalizedUtterance });
+        if (!hasEvidence && !exploredTriggersRef.current.has("claim")) {
+          const question = questionForTrigger("claim", normalizedUtterance);
+          addTranscriptLine("agent", question);
+          setAgentQuestion(question);
+          exploredTriggersRef.current.add("claim");
+        }
         triggered = true;
       }
 
@@ -174,10 +209,14 @@ const useVoiceSession = () => {
         lowerText.includes(pattern)
       );
       if (hasAssumptionPattern && !triggered) {
-        logAssumption(text);
-        setLastLogged({ type: "assumption", text });
-        addTranscriptLine("agent", "What makes you believe that?");
-        setAgentQuestion("What makes you believe that?");
+        logAssumption(normalizedUtterance);
+        setLastLogged({ type: "assumption", text: normalizedUtterance });
+        if (!exploredTriggersRef.current.has("assumption")) {
+          const question = questionForTrigger("assumption", normalizedUtterance);
+          addTranscriptLine("agent", question);
+          setAgentQuestion(question);
+          exploredTriggersRef.current.add("assumption");
+        }
         triggered = true;
       }
 
@@ -197,15 +236,14 @@ const useVoiceSession = () => {
       );
       if (hasOptionPattern && !triggered) {
         // We'll log every option mention as an option
-        logOption(text);
-        setLastLogged({ type: "option", text });
+        logOption(normalizedUtterance);
+        setLastLogged({ type: "option", text: normalizedUtterance });
         // Only ask about alternatives if this is the first (and so far only) option
-        if (options.length === 0) {
-          addTranscriptLine(
-            "agent",
-            "What's the alternative you're not considering?"
-          );
-          setAgentQuestion("What's the alternative you're not considering?");
+        if (options.length === 0 && !exploredTriggersRef.current.has("option")) {
+          const question = questionForTrigger("option", normalizedUtterance);
+          addTranscriptLine("agent", question);
+          setAgentQuestion(question);
+          exploredTriggersRef.current.add("option");
         }
         triggered = true;
       }
@@ -227,11 +265,14 @@ const useVoiceSession = () => {
         lowerText.includes(pattern)
       );
       if (hasCriterionPattern && !triggered) {
-        logCriterion(text);
-        setLastLogged({ type: "criterion", text });
-        // We don't have access to criteria count, so we'll always ask the question for now
-        addTranscriptLine("agent", "What would make this a win for you?");
-        setAgentQuestion("What would make this a win for you?");
+        logCriterion(normalizedUtterance);
+        setLastLogged({ type: "criterion", text: normalizedUtterance });
+        if (!exploredTriggersRef.current.has("criterion")) {
+          const question = questionForTrigger("criterion", normalizedUtterance);
+          addTranscriptLine("agent", question);
+          setAgentQuestion(question);
+          exploredTriggersRef.current.add("criterion");
+        }
         triggered = true;
       }
 
@@ -244,6 +285,7 @@ const useVoiceSession = () => {
       addTranscriptLine,
       setLastLogged,
       options,
+      questionForTrigger,
     ]
   );
 
@@ -431,15 +473,6 @@ const useVoiceSession = () => {
           setConnectionStatus("error");
           setError(msg.error.message || "Agent error occurred");
           setIsListening(false);
-          break;
-
-        case "turn.is_formatted":
-          // Handle intermediate transcript (user is speaking)
-          if (msg.transcript?.trim()) {
-            console.log("useVoiceSession: Received interim transcript:", msg.transcript);
-            // Process locally for immediate feedback (agent will also process via tool invocation)
-            processUserUtteranceLocally(msg.transcript);
-          }
           break;
 
         case "turn.is_complete":
@@ -670,6 +703,8 @@ const useVoiceSession = () => {
     setConnectionStatus("disconnected");
     setError(null);
     isUsingMockRef.current = false;
+    processedUtterancesRef.current.clear();
+    exploredTriggersRef.current.clear();
 
     // Stop listening if active
     stopListening();
